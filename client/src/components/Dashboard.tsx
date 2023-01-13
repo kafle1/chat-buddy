@@ -19,12 +19,15 @@ import {
 } from "@mui/material";
 import {
   AddCircle,
-  DoorBack,
   ExitToAppRounded,
   Send as SendIcon,
 } from "@mui/icons-material";
 import io, { Socket } from "socket.io-client";
-import useLocalStorage from "../hooks/useLocalStorage";
+import {
+  useLocalStorageContact,
+  useLocalStorageConversation,
+  useLocalStorageId,
+} from "../hooks/useLocalStorage";
 import { LocalStorageType, contactType, conversationType } from "../types";
 
 const Dashboard = ({ id }: { id: string }) => {
@@ -38,13 +41,13 @@ const Dashboard = ({ id }: { id: string }) => {
     setTabValue(newValue);
   };
 
-  const [existingContacts, setExistingContacts] = useState<contactType[]>([
+  const [existingContacts, setExistingContacts] = useLocalStorageContact([
     { id: "57545", name: "Alice", initials: "A", isSelected: false },
     { id: "6574254534", name: "Bob", initials: "B", isSelected: false },
     { id: "45543", name: "Charlie", initials: "C", isSelected: false },
   ]);
 
-  const [conversations, setConversations] = useState<conversationType[]>([]);
+  const [conversations, setConversations] = useLocalStorageConversation([]);
 
   const handleSelectContact = (contact: contactType) => {
     console.log("Selected contact:", contact);
@@ -88,7 +91,7 @@ const Dashboard = ({ id }: { id: string }) => {
       return;
     }
 
-    console.log("Selected contacts:", selectedContacts);
+  
 
     const newConversation: conversationType = {
       id: conversations.length + 1,
@@ -114,6 +117,8 @@ const Dashboard = ({ id }: { id: string }) => {
         isSelected: false,
       }))
     );
+
+    setTabValue(0);
   };
 
   const handleSendMessage = (
@@ -166,7 +171,10 @@ const Dashboard = ({ id }: { id: string }) => {
                   {selectedConversation.contacts.map((c) => c.name).join(", ")}
                 </Typography>
                 <Box flexGrow={1} />
-                <IconButton onClick={() => setSelectedConversation(null)}>
+                <IconButton
+                  size="large"
+                  onClick={() => setSelectedConversation(null)}
+                >
                   <ExitToAppRounded color="error" />
                 </IconButton>
               </Box>

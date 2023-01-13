@@ -13,9 +13,11 @@ export type conversationType = {
 
 export type LocalStorageType = {
   key: string;
-  initialValue:
-    | string
-    | contactType[]
-    | conversationType[]
-    | (() => string | contactType[] | conversationType[]);
+  initialValue: InitialStorageType;
 };
+
+export type InitialStorageType =
+  | string
+  | contactType[]
+  | conversationType[]
+  | (() => string | contactType[] | conversationType[]);

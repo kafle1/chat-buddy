@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { contactType, conversationType, LocalStorageType } from "../types";
+import {
+  contactType,
+  conversationType,
+  InitialStorageType,
+  LocalStorageType,
+} from "../types";
 
 const PREFIX: string = "chat-buddy-";
 
@@ -22,4 +27,16 @@ const useLocalStorage = ({ key, initialValue }: LocalStorageType) => {
   return [value, setValue];
 };
 
-export default useLocalStorage;
+export const useLocalStorageId = (initialValue: InitialStorageType) => {
+  return useLocalStorage({ key: "id", initialValue });
+};
+
+export const useLocalStorageContact = (initialValue: InitialStorageType) => {
+  return useLocalStorage({ key: "contact", initialValue });
+};
+
+export const useLocalStorageConversation = (
+  initialValue: InitialStorageType
+) => {
+  return useLocalStorage({ key: "conversation", initialValue });
+};
