@@ -14,9 +14,6 @@ import { Server, Socket } from 'socket.io';
   },
 })
 export class ChatGateway implements OnModuleInit {
-  //store users
-  messages = new Map();
-
   @WebSocketServer()
   server: Server;
 

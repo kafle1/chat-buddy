@@ -27,7 +27,7 @@ const Chat = () => {
 
   useEffect(() => {
     socket.on("connect", () => {
-      console.log("Connected!");
+      console.log("Connected with id: ", socket.id);
     });
     socket.on("onMessage", (latestMessage: MessagePayload) => {
       setMessages((prev) => [...prev, latestMessage]);
