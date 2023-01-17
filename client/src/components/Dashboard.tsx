@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
 import {
   AppBar,
   Toolbar,
@@ -19,39 +20,103 @@ import {
 } from "@mui/material";
 import {
   AddCircle,
+  DeleteForeverRounded,
   ExitToAppRounded,
   Send as SendIcon,
 } from "@mui/icons-material";
-import io, { Socket } from "socket.io-client";
+
 import {
   useLocalStorageContact,
   useLocalStorageConversation,
-  useLocalStorageId,
 } from "../hooks/useLocalStorage";
-import { LocalStorageType, contactType, conversationType } from "../types";
+import { PayloadType, contactType, conversationType } from "../types";
+import { useSocket } from "../context/SocketProvider";
 
 const Dashboard = ({ id }: { id: string }) => {
+  //states
   const [tabValue, setTabValue] = useState(0);
   const [newContactName, setNewContactName] = useState("");
   const [newContactId, setNewContactId] = useState("");
   const [selectedConversation, setSelectedConversation] =
     useState<conversationType | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const handleTabChange = (event: any, newValue: number) => {
-    setTabValue(newValue);
-  };
 
   const [existingContacts, setExistingContacts] = useLocalStorageContact([
-    { id: "57545", name: "Alice", initials: "A", isSelected: false },
-    { id: "6574254534", name: "Bob", initials: "B", isSelected: false },
-    { id: "45543", name: "Charlie", initials: "C", isSelected: false },
+    {
+      id: "6860d347-2460-4043-98f2-4bc7524c06e2",
+      name: "Niraj",
+      initials: "NI",
+      isSelected: false,
+    },
   ]);
 
   const [conversations, setConversations] = useLocalStorageConversation([]);
 
-  const handleSelectContact = (contact: contactType) => {
-    console.log("Selected contact:", contact);
-    // code here to handle the selection of the contact
+  //context
+  const socket = useSocket();
+
+  //receive messages
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("receiveMessage", (payload: PayloadType) => {
+      console.log(payload);
+
+      const message = {
+        sender: payload.sender,
+        text: payload.text,
+        time: new Date().toLocaleString(),
+      };
+
+      //check if the conversation already exists with the all those recipients, create new conversation even if there is any personal conversation with any recipients
+      const conversation = conversations.find((c: conversationType) => {
+        const recipients = payload.recipients.filter(
+          (r: string) => r !== id
+        ) as string[];
+        return recipients.every((r: string) =>
+          c.contacts.find((contact: contactType) => contact.id === r)
+        );
+      });
+
+      if (conversation) {
+        //if conversation exists, add the message to the conversation
+        conversation.messages.push(message);
+        setConversations([...conversations]);
+      } else {
+        // if recipients is in existing contacts, create a new conversation with recipients with their names
+        const recipients = payload.recipients.filter(
+          (r: string) => r !== id
+        ) as string[];
+        const newContacts = recipients.map((r: string) => {
+          const contact = existingContacts.find((c: contactType) => c.id === r);
+          if (contact) {
+            return contact;
+          }
+          return {
+            id: r,
+            name: r,
+            initials: r[0],
+            isSelected: false,
+          };
+        });
+
+        const newConversation: conversationType = {
+          id: conversations.length + 1,
+          contacts: newContacts,
+          messages: [message],
+        };
+        setConversations([...conversations, newConversation]);
+      }
+    });
+
+    return () => {
+      socket.off("receiveMessage");
+    };
+  }, [socket, conversations, selectedConversation]);
+
+  //handlers
+  const handleTabChange = (event: any, newValue: number) => {
+    setTabValue(newValue);
   };
 
   const handleAddContact = () => {
@@ -67,6 +132,19 @@ const Dashboard = ({ id }: { id: string }) => {
     setExistingContacts([...existingContacts, newContact]);
     setNewContactName("");
     setNewContactId("");
+
+    //if the new contact is already in a conversation, change the name of the contact in the conversation to the new name and set the initials to the first letter of the name
+    const updatedConversations = conversations.map((c: conversationType) => {
+      const contact = c.contacts.find(
+        (contact: contactType) => contact.id === newContact.id
+      );
+      if (contact) {
+        contact.name = newContact.name;
+        contact.initials = newContact.initials;
+      }
+      return c;
+    });
+    setConversations(updatedConversations);
   };
 
   const handleCheckboxClick = (contact: contactType) => {
@@ -91,23 +169,10 @@ const Dashboard = ({ id }: { id: string }) => {
       return;
     }
 
-  
-
     const newConversation: conversationType = {
       id: conversations.length + 1,
       contacts: selectedContacts,
-      messages: [
-        {
-          sender: "Alice",
-          text: "Hey Bob, how are you doing?",
-          time: "4:12 PM",
-        },
-        {
-          sender: "user",
-          text: "Hey Alice, I am doing good. How about you?",
-          time: "4:13 PM",
-        },
-      ],
+      messages: [],
     };
     setConversations([...conversations, newConversation]);
 
@@ -133,21 +198,44 @@ const Dashboard = ({ id }: { id: string }) => {
       return;
     }
 
-    console.log({ newMessage });
-    console.log(selectedConversation);
+    if (!socket) {
+      console.log("Error connecting to socket");
+      return;
+    }
 
+    //send message to server
+    socket.emit(
+      "sendMessage",
+      {
+        recipients: selectedConversation.contacts.map((c) => c.id),
+        text: newMessage,
+      },
+      () => {
+        console.log("Message sent");
+      }
+    );
     //set the new message to messages of selectedConversation
     const message = {
       sender: "user",
       text: newMessage,
-      time: new Date().toString(),
+      time: new Date().toLocaleString(),
     };
-
     selectedConversation.messages.push(message);
-
     setSelectedConversation(selectedConversation);
     setNewMessage("");
   };
+
+  const handleDeleteConversation = (conversation: conversationType) => {
+    //delete the conversation from state
+    const updatedConversations = conversations.filter(
+      (c: conversationType) => c.id !== conversation.id
+    );
+    setConversations(updatedConversations);
+    setSelectedConversation(null);
+
+    window.location.reload();
+  };
+
   return (
     <div>
       <AppBar position="static">
@@ -175,7 +263,7 @@ const Dashboard = ({ id }: { id: string }) => {
                   size="large"
                   onClick={() => setSelectedConversation(null)}
                 >
-                  <ExitToAppRounded color="error" />
+                  <ExitToAppRounded color="info" />
                 </IconButton>
               </Box>
 
@@ -244,6 +332,12 @@ const Dashboard = ({ id }: { id: string }) => {
                         .map((c) => c.name)
                         .join(", ")}
                     />
+                    <IconButton
+                      size="large"
+                      onClick={() => handleDeleteConversation(conversation)}
+                    >
+                      <DeleteForeverRounded color="error" />
+                    </IconButton>
                   </ListItem>
                 </Paper>
               ))}
@@ -259,7 +353,7 @@ const Dashboard = ({ id }: { id: string }) => {
               existingContacts.map((contact: contactType) => (
                 <ListItem
                   key={contact.id}
-                  onClick={() => handleSelectContact(contact)}
+                  onClick={() => handleCheckboxClick(contact)}
                 >
                   <ListItemAvatar>
                     <Avatar>{contact.initials}</Avatar>

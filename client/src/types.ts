@@ -21,3 +21,15 @@ export type InitialStorageType =
   | contactType[]
   | conversationType[]
   | (() => string | contactType[] | conversationType[]);
+
+
+  export type SocketProviderProps = {
+    id: string;
+    children: React.ReactNode;
+  }
+
+  export type PayloadType = {
+    recipients: string[];
+    sender: string;
+    text: string;
+  }

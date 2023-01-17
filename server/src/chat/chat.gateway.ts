@@ -19,18 +19,27 @@ export class ChatGateway implements OnModuleInit {
 
   onModuleInit() {
     this.server.on('connection', (socket) => {
+      const id = socket.handshake.query.id;
+      socket.join(id);
       console.log(`Client of id ${socket.id} connected`);
     });
   }
 
-  @SubscribeMessage('newMessage')
+  @SubscribeMessage('sendMessage')
   handleNewMessage(
-    @MessageBody() body: any,
+    @MessageBody() { recipients, text }: { recipients: string[]; text: string },
     @ConnectedSocket() client: Socket,
   ) {
-    this.server.emit('onMessage', {
-      id: client.id,
-      data: body,
+    const id = client.handshake.query.id as string;
+
+    recipients.forEach((recipient) => {
+      const newRecipients = recipients.filter((r) => r !== recipient);
+      newRecipients.push(id);
+      client.broadcast.to(recipient).emit('receiveMessage', {
+        recipients: newRecipients,
+        sender: id,
+        text,
+      });
     });
   }
 }
