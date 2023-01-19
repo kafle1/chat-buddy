@@ -7,11 +7,13 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { instrument } from '@socket.io/admin-ui';
 
-@WebSocketGateway({
+@WebSocketGateway(6000, {
   cors: {
     origin: '*',
   },
+  transports: ['websocket'],
 })
 export class ChatGateway implements OnModuleInit {
   @WebSocketServer()
@@ -22,6 +24,9 @@ export class ChatGateway implements OnModuleInit {
       const id = socket.handshake.query.id;
       socket.join(id);
       console.log(`Client of id ${socket.id} connected`);
+    });
+    instrument(this.server, {
+      auth: false,
     });
   }
 
