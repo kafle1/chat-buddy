@@ -11,22 +11,33 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
   password  String
-  rooms     Room[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  myRooms   Room[]     @relation(name: "myRooms" )
+  roomUsers RoomUser[]
   chats     Chat[]
+}
+
+model RoomUser {
+  id        String   @id @default(uuid())
+  roomID    String
+  room      Room     @relation(fields: [roomID], references: [id], onDelete: Cascade )
+  userID    String
+  user      User     @relation(fields: [userID], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Room {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   name      String
-  createdAt DateTime @default(now())
-  userID    String
-  user      User     @relation(fields: [userID], references: [id])
+  createdAt DateTime   @default(now())
+  creatorID String
+  creator   User     @relation(name: "myRooms", fields: [creatorID], references: [id], onDelete: Cascade)
+  roomUsers RoomUser[]
   chats     Chat[]
 }
 
@@ -35,7 +46,7 @@ model Chat {
   message   String
   createdAt DateTime @default(now())
   roomID    String
-  room      Room     @relation(fields: [roomID], references: [id])
+  room      Room     @relation(fields: [roomID], references: [id] , onDelete: Cascade )
   userID    String
-  user      User     @relation(fields: [userID], references: [id])
+  user      User     @relation(fields: [userID], references: [id], onDelete: Cascade)
 }
