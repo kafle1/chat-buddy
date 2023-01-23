@@ -1,4 +1,4 @@
-import { OnModuleInit } from '@nestjs/common';
+import { UseFilters } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -17,6 +17,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RoomService } from 'src/room/room.service';
 import { User } from '@prisma/client';
 import { JWT_SECRET } from 'src/config/env.config';
+import { ChatService } from './chat.service';
 
 @WebSocketGateway(6000, {
   cors: {
@@ -32,7 +33,7 @@ export class ChatGateway
 
   constructor(
     private jwtService: JwtService,
-    private roomService: RoomService,
+    private chatService: ChatService,
     private prisma: PrismaService,
   ) {}
 
@@ -41,6 +42,7 @@ export class ChatGateway
       auth: false,
     });
   }
+  user: { id: string; rooms?: string[] };
 
   async handleConnection(client: Socket) {
     try {
@@ -61,6 +63,15 @@ export class ChatGateway
         where: {
           id,
         },
+        //get roomID of the user whose id matches with userID in RoomUser table
+        select: {
+          id: true,
+          roomUsers: {
+            select: {
+              roomID: true,
+            },
+          },
+        },
       });
 
       if (!user) {
@@ -68,35 +79,63 @@ export class ChatGateway
         throw new WsException('User not found');
       }
 
-      client.join(client.id);
-      console.log(`Client of id ${client.id} connected`);
+      this.user = {
+        id: user.id,
+        rooms: [...user.roomUsers.map((room) => room.roomID)],
+      };
+
+      //join all rooms
+      this.joinRoom(client);
+
+      //set online status to true
+      client.emit('online', { id: user.id, online: true });
     } catch (error) {
-      console.log({ error });
       client.disconnect();
       throw new WsException(error.message);
     }
   }
 
   handleDisconnect(client: Socket) {
-    console.log({ client });
+    // console.log({ client });
     // throw new Error('Method not implemented.');
   }
 
   @SubscribeMessage('sendMessage')
-  handleNewMessage(
-    @MessageBody() { recipients, text }: { recipients: string[]; text: string },
+  async handleNewMessage(
+    @MessageBody()
+    { roomId, text }: { roomId: string; text: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const id = client.handshake.query.id as string;
+    //check if user is in room
+    if (client.rooms.has(roomId)) {
+      //create new chat message
+      await this.chatService.create({
+        message: text,
+        roomID: roomId,
+        userID: this.user.id,
+      });
 
-    recipients.forEach((recipient) => {
-      const newRecipients = recipients.filter((r) => r !== recipient);
-      newRecipients.push(id);
-      client.broadcast.to(recipient).emit('receiveMessage', {
-        recipients: newRecipients,
-        sender: id,
+      //send message to all users in room
+      client.broadcast.to(roomId).emit('receiveMessage', {
+        roomId,
+        sender: this.user.id,
         text,
       });
-    });
+    }
+  }
+
+  joinRoom(client: Socket) {
+    client.join([this.user.id, this.user.rooms.map((room) => room).join('')]);
+
+    console.log(
+      `Client of id ${client.id} connected, joined room ${
+        this.user.id
+      }, ${this.user.rooms.map((room) => room).join('')} `,
+    );
   }
 }
+// client.broadcast.to(recipient).emit('receiveMessage', {
+//   recipients: newRecipients,
+//   sender: id,
+//   text,
+// });

@@ -7,10 +7,18 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { RoomModule } from './room/room.module';
 import { RoomService } from './room/room.service';
+import { ChatService } from './chat/chat.service';
 
 @Module({
   imports: [AuthModule, UserModule, RoomModule],
   controllers: [],
-  providers: [AppService, ChatGateway, PrismaService, JwtService, RoomService],
+  providers: [
+    AppService,
+    ChatGateway,
+    PrismaService,
+    JwtService,
+    RoomService,
+    ChatService,
+  ],
 })
 export class AppModule {}

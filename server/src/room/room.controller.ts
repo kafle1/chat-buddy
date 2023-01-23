@@ -43,4 +43,14 @@ export class RoomController {
   remove(@Param('id') id: string) {
     return this.roomService.remove(id);
   }
+
+  @Post('/join/:roomId')
+  joinRoom(@Param('roomId') roomId: string, @User('id') userId: string) {
+    return this.roomService.joinRoom(roomId, userId);
+  }
+
+  @Post('/leave/:roomId')
+  leaveRoom(@Param('roomId') roomId: string, @User('id') userId: string) {
+    return this.roomService.leaveRoom(roomId, userId);
+  }
 }
