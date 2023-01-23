@@ -33,6 +33,7 @@ export class ChatService {
 
     if (!user) throw new WsException('User is not in room');
 
+    //create new  chat
     const chat = await this.prisma.chat.create({
       data: {
         message: createMessageDto.message,
@@ -53,6 +54,15 @@ export class ChatService {
   }
 
   async findAll(roomID: string) {
+    //check if room exists
+    const room = await this.prisma.room.findUnique({
+      where: {
+        id: roomID,
+      },
+    });
+
+    if (!room) throw new WsException('Room does not exist');
+
     //get all the chat messages with the room id
     return await this.prisma.chat.findMany({
       where: {

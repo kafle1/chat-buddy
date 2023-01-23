@@ -18,6 +18,10 @@ import { RoomService } from 'src/room/room.service';
 import { User } from '@prisma/client';
 import { JWT_SECRET } from 'src/config/env.config';
 import { ChatService } from './chat.service';
+import {
+  BadGatewayException,
+  BadRequestException,
+} from '@nestjs/common/exceptions';
 
 @WebSocketGateway(6000, {
   cors: {
@@ -67,6 +71,9 @@ export class ChatGateway
         select: {
           id: true,
           roomUsers: {
+            where: {
+              userID: id,
+            },
             select: {
               roomID: true,
             },
@@ -96,8 +103,8 @@ export class ChatGateway
   }
 
   handleDisconnect(client: Socket) {
-    // console.log({ client });
-    // throw new Error('Method not implemented.');
+    //set online status to false
+    client.emit('online', { id: this.user.id, online: false });
   }
 
   @SubscribeMessage('sendMessage')
@@ -108,12 +115,12 @@ export class ChatGateway
   ) {
     //check if user is in room
     if (client.rooms.has(roomId)) {
-      //create new chat message
-      await this.chatService.create({
-        message: text,
-        roomID: roomId,
-        userID: this.user.id,
-      });
+      // //create new chat message
+      // await this.chatService.create({
+      //   message: text,
+      //   roomID: roomId,
+      //   userID: this.user.id,
+      // });
 
       //send message to all users in room
       client.broadcast.to(roomId).emit('receiveMessage', {
@@ -134,8 +141,3 @@ export class ChatGateway
     );
   }
 }
-// client.broadcast.to(recipient).emit('receiveMessage', {
-//   recipients: newRecipients,
-//   sender: id,
-//   text,
-// });
