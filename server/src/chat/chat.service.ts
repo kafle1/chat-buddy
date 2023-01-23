@@ -70,11 +70,50 @@ export class ChatService {
     });
   }
 
-  update(id: number, updateMessageDto: UpdateMessageDto) {
-    return `This action updates a #${id} message`;
+  async update(id: string, updateMessageDto: UpdateMessageDto) {
+    //check if message exists
+    const message = await this.prisma.chat.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!message) throw new WsException('Message does not exist');
+
+    //check if user is the owner of the message
+    if (message.userID !== updateMessageDto.userId)
+      throw new WsException('User is not the owner of the message');
+
+    //update the message
+    return await this.prisma.chat.update({
+      where: {
+        id,
+      },
+      data: {
+        message: updateMessageDto.message,
+      },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} message`;
+  async remove(id: string, userID: string) {
+    //check if message exists
+    const message = await this.prisma.chat.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!message) throw new WsException('Message does not exist');
+
+    //check if user is the owner of the message
+    if (message.userID !== userID)
+      throw new WsException('User is not the owner of the message');
+
+    //delete the message
+    return await this.prisma.chat.delete({
+      where: {
+        id,
+      },
+    });
   }
 }
