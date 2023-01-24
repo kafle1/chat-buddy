@@ -53,54 +53,49 @@ export class ChatService {
     return chat;
   }
 
-  async findAll(roomID: string) {
-    //check if room exists
-    const room = await this.prisma.room.findUnique({
+  async find(chatId: string) {
+    return await this.prisma.chat.findUnique({
       where: {
-        id: roomID,
+        id: chatId,
       },
-    });
-
-    if (!room) throw new WsException('Room does not exist');
-
-    //get all the chat messages with the room id
-    return await this.prisma.chat.findMany({
-      where: {
-        roomID,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+      select: {
+        id: true,
+        message: true,
+        createdAt: true,
+        userID: true,
+        roomID: true,
       },
     });
   }
 
-  async update(id: string, updateMessageDto: UpdateMessageDto) {
+  async update(updateMessageDto: UpdateMessageDto) {
     //check if message exists
     const message = await this.prisma.chat.findUnique({
       where: {
-        id,
+        id: updateMessageDto.messageID,
       },
     });
 
-    if (!message) throw new WsException('Message does not exist');
+    if (!message) throw new BadRequestException('Message does not exist');
 
     //check if user is the owner of the message
-    if (message.userID !== updateMessageDto.userId)
-      throw new WsException('User is not the owner of the message');
+    if (message.userID !== updateMessageDto.userID)
+      throw new BadRequestException('User is not the owner of the message');
 
     //update the message
     return await this.prisma.chat.update({
       where: {
-        id,
+        id: updateMessageDto.messageID,
       },
       data: {
         message: updateMessageDto.message,
+      },
+      select: {
+        id: true,
+        message: true,
+        createdAt: true,
+        userID: true,
+        roomID: true,
       },
     });
   }

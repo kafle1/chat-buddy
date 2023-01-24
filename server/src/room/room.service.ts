@@ -69,20 +69,26 @@ export class RoomService {
   }
 
   async findOne(id: string) {
-    return await this.prisma.room.findUnique({
+    //check if room exists
+    const room = await this.prisma.room.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!room) throw new NotFoundException('Room not found');
+
+    const roomDetails = await this.prisma.room.findUnique({
       where: {
         id,
       },
       include: {
-        creator: {
-          select: {
-            id: true,
-          },
-        },
         roomUsers: {
+          where: {
+            roomID: id,
+          },
           select: {
             userID: true,
-            roomID: true,
           },
         },
         chats: {
@@ -95,6 +101,11 @@ export class RoomService {
         },
       },
     });
+
+    return {
+      ...roomDetails,
+      roomUsers: roomDetails.roomUsers.map((user) => user.userID),
+    };
   }
 
   async update(id: string, updateRoomDto: UpdateRoomDto) {
