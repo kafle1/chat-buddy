@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { UpdateMessageDto } from './dto/update-message.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -15,7 +15,7 @@ export class ChatService {
       },
     });
 
-    if (!room) throw new WsException('Room does not exist');
+    if (!room) throw new BadRequestException('Room does not exist');
 
     //check if user is in room
     const user = await this.prisma.roomUser.findFirst({
@@ -31,7 +31,7 @@ export class ChatService {
       },
     });
 
-    if (!user) throw new WsException('User is not in room');
+    if (!user) throw new BadRequestException('User is not in room');
 
     //create new  chat
     const chat = await this.prisma.chat.create({

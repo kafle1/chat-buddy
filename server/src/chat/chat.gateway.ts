@@ -115,12 +115,12 @@ export class ChatGateway
   ) {
     //check if user is in room
     if (client.rooms.has(roomId)) {
-      // //create new chat message
-      // await this.chatService.create({
-      //   message: text,
-      //   roomID: roomId,
-      //   userID: this.user.id,
-      // });
+      //create new chat message
+      await this.chatService.create({
+        message: text,
+        roomID: roomId,
+        userID: this.user.id,
+      });
 
       //send message to all users in room
       client.broadcast.to(roomId).emit('receiveMessage', {
