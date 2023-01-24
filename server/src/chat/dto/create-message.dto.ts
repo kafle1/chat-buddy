@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, IsUUID } from 'class-validator';
 export class CreateMessageDto {
   @IsString()
   message: string;
@@ -6,4 +6,11 @@ export class CreateMessageDto {
   roomID: string;
   @IsString()
   userID: string;
+}
+
+export class SendMessageBody {
+  @IsUUID()
+  roomId: string;
+  @IsString()
+  text: string;
 }

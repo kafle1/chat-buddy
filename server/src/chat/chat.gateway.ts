@@ -17,6 +17,9 @@ import { JwtService } from '@nestjs/jwt';
 import { JWT_SECRET } from 'src/config/env.config';
 import { ChatService } from './chat.service';
 import { WebsocketExceptionsFilter } from 'src/utils/ws.exception-filter';
+import { AsyncApiPub, AsyncApiService, AsyncApiSub } from 'nestjs-asyncapi';
+import { SendMessageBody } from './dto/create-message.dto';
+@AsyncApiService()
 @UseFilters(WebsocketExceptionsFilter)
 @WebSocketGateway(6000, {
   cors: {
@@ -112,9 +115,20 @@ export class ChatGateway
   }
 
   @SubscribeMessage('sendMessage')
+  @AsyncApiPub({
+    channel: 'test',
+    summary: 'Send test packet',
+    description: 'method is used for test purposes',
+    message: {
+      name: 'test data',
+      payload: {
+        type: SendMessageBody,
+      },
+    },
+  })
   async handleNewMessage(
     @MessageBody()
-    { roomId, text }: { roomId: string; text: string },
+    { roomId, text }: SendMessageBody,
     @ConnectedSocket() client: Socket,
   ) {
     //create new chat message
