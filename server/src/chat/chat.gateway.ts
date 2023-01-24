@@ -18,7 +18,7 @@ import { JWT_SECRET } from 'src/config/env.config';
 import { ChatService } from './chat.service';
 import { WebsocketExceptionsFilter } from 'src/utils/ws.exception-filter';
 import { AsyncApiPub, AsyncApiService, AsyncApiSub } from 'nestjs-asyncapi';
-import { SendMessageBody } from './dto/create-message.dto';
+import { ReceiveMessageBody, SendMessageBody } from './dto/create-message.dto';
 @AsyncApiService()
 @UseFilters(WebsocketExceptionsFilter)
 @WebSocketGateway(6000, {
@@ -116,13 +116,43 @@ export class ChatGateway
 
   @SubscribeMessage('sendMessage')
   @AsyncApiPub({
-    channel: 'test',
+    channel: 'sendMessage',
     summary: 'Send test packet',
-    description: 'method is used for test purposes',
+    description: 'Create new message',
     message: {
-      name: 'test data',
+      name: 'sendMessage',
       payload: {
         type: SendMessageBody,
+      },
+      headers: {
+        type: 'object',
+        properties: {
+          token: {
+            type: 'string',
+            description: 'JWT token',
+          },
+        },
+      },
+    },
+  })
+  @AsyncApiSub({
+    channel: 'receiveMessage',
+    summary: 'Receive test packet',
+    description: 'Receive new message',
+    
+    message: {
+      name: 'receiveMessage',
+      payload: {
+        type: ReceiveMessageBody,
+      },
+      headers: {
+        type: 'object',
+        properties: {
+          token: {
+            type: 'string',
+            description: 'JWT token',
+          },
+        },
       },
     },
   })
