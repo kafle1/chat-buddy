@@ -1,5 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ChatGateway } from './chat/chat.gateway';
 import { PrismaService } from './prisma/prisma.service';
@@ -19,6 +19,7 @@ import { ChatService } from './chat/chat.service';
     JwtService,
     RoomService,
     ChatService,
+    Logger
   ],
 })
 export class AppModule {}

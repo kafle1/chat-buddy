@@ -1,4 +1,4 @@
-import { UseFilters } from '@nestjs/common';
+import { UseFilters, BadRequestException, Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
@@ -14,15 +14,10 @@ import { Server, Socket } from 'socket.io';
 import { instrument } from '@socket.io/admin-ui';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
-import { RoomService } from 'src/room/room.service';
-import { User } from '@prisma/client';
 import { JWT_SECRET } from 'src/config/env.config';
 import { ChatService } from './chat.service';
-import {
-  BadGatewayException,
-  BadRequestException,
-} from '@nestjs/common/exceptions';
-
+import { WebsocketExceptionsFilter } from 'src/utils/ws.exception-filter';
+@UseFilters(WebsocketExceptionsFilter)
 @WebSocketGateway(6000, {
   cors: {
     origin: '*',
@@ -39,6 +34,7 @@ export class ChatGateway
     private jwtService: JwtService,
     private chatService: ChatService,
     private prisma: PrismaService,
+    private logger: Logger,
   ) {}
 
   afterInit() {
@@ -53,7 +49,9 @@ export class ChatGateway
       //check if token is provided
       if (!client.handshake.query.token) {
         client.disconnect();
-        throw new WsException('Token not provided');
+        this.logger.error(
+          `Client with connection id: ${client.id} disconnected: No token provided`,
+        );
       }
 
       //check if token is valid
@@ -83,7 +81,9 @@ export class ChatGateway
 
       if (!user) {
         client.disconnect();
-        throw new WsException('User not found');
+        this.logger.error(
+          `Client with connection id: ${client.id} disconnected: User does not exist`,
+        );
       }
 
       this.user = {
@@ -98,7 +98,9 @@ export class ChatGateway
       client.emit('online', { id: user.id, online: true });
     } catch (error) {
       client.disconnect();
-      throw new WsException(error.message);
+      this.logger.error(
+        `Client with connection id: ${client.id} disconnected: ${error.message}`,
+      );
     }
   }
 
