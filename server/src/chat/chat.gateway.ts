@@ -1,3 +1,7 @@
+import {
+  ReceiveUpdateMessageBody,
+  UpdateMessageBody,
+} from './dto/update-message.dto';
 import { UseFilters, BadRequestException, Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
@@ -18,7 +22,15 @@ import { JWT_SECRET } from 'src/config/env.config';
 import { ChatService } from './chat.service';
 import { WebsocketExceptionsFilter } from 'src/utils/ws.exception-filter';
 import { AsyncApiPub, AsyncApiService, AsyncApiSub } from 'nestjs-asyncapi';
-import { ReceiveMessageBody, SendMessageBody } from './dto/create-message.dto';
+import {
+  HeaderToken,
+  ReceiveMessageBody,
+  SendMessageBody,
+} from './dto/create-message.dto';
+import {
+  DeleteMessageBody,
+  ReceiveDeleteMessageBody,
+} from './dto/delete-message.dto';
 @AsyncApiService()
 @UseFilters(WebsocketExceptionsFilter)
 @WebSocketGateway(6000, {
@@ -115,9 +127,8 @@ export class ChatGateway
   }
 
   @SubscribeMessage('sendMessage')
-  @AsyncApiPub({
+  @AsyncApiSub({
     channel: 'sendMessage',
-    summary: 'Send test packet',
     description: 'Create new message',
     message: {
       name: 'sendMessage',
@@ -135,24 +146,13 @@ export class ChatGateway
       },
     },
   })
-  @AsyncApiSub({
+  @AsyncApiPub({
     channel: 'receiveMessage',
-    summary: 'Receive test packet',
     description: 'Receive new message',
-    
     message: {
       name: 'receiveMessage',
       payload: {
         type: ReceiveMessageBody,
-      },
-      headers: {
-        type: 'object',
-        properties: {
-          token: {
-            type: 'string',
-            description: 'JWT token',
-          },
-        },
       },
     },
   })
@@ -181,13 +181,38 @@ export class ChatGateway
   }
 
   @SubscribeMessage('updateMessage')
+  @AsyncApiSub({
+    channel: 'updateMessage',
+    description: 'Update message',
+    message: {
+      name: 'updateMessage',
+      payload: {
+        type: UpdateMessageBody,
+      },
+      headers: {
+        type: 'object',
+        properties: {
+          token: {
+            type: 'string',
+            description: 'JWT token',
+          },
+        },
+      },
+    },
+  })
+  @AsyncApiPub({
+    channel: 'receiveUpdateMessage',
+    description: 'Receive updated message',
+    message: {
+      name: 'receiveUpdateMessage',
+      payload: {
+        type: ReceiveUpdateMessageBody,
+      },
+    },
+  })
   async handleUpdateMessage(
     @MessageBody()
-    {
-      roomId,
-      messageId,
-      text,
-    }: { roomId: string; messageId: string; text: string },
+    { roomId, messageId, text }: UpdateMessageBody,
     @ConnectedSocket() client: Socket,
   ) {
     //update chat message
@@ -203,14 +228,43 @@ export class ChatGateway
       roomId: updatedMessage.roomID,
       sender: updatedMessage.userID,
       text: updatedMessage.message,
-      createdAt: updatedMessage.createdAt,
+      updatedAt: updatedMessage.updatedAt,
     });
   }
 
   @SubscribeMessage('deleteMessage')
+  @AsyncApiSub({
+    channel: 'deleteMessage',
+    description: 'Delete message',
+    message: {
+      name: 'deleteMessage',
+      payload: {
+        type: DeleteMessageBody,
+      },
+      headers: {
+        type: 'object',
+        properties: {
+          token: {
+            type: 'string',
+            description: 'JWT token',
+          },
+        },
+      },
+    },
+  })
+  @AsyncApiPub({
+    channel: 'receiveDeleteMessage',
+    description: 'Receive deleted message',
+    message: {
+      name: 'receiveDeleteMessage',
+      payload: {
+        type: ReceiveDeleteMessageBody,
+      },
+    },
+  })
   async handleDeleteMessage(
     @MessageBody()
-    { roomId, messageId }: { roomId: string; messageId: string },
+    { roomId, messageId }: DeleteMessageBody,
     @ConnectedSocket() client: Socket,
   ) {
     //delete chat message

@@ -45,6 +45,7 @@ model Chat {
   id        String   @id @default(uuid())
   message   String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
   roomID    String
   room      Room     @relation(fields: [roomID], references: [id] , onDelete: Cascade )
   userID    String

@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { UpdateMessageDto } from './dto/update-message.dto';
+import { UpdateMessageDto, UpdateMessageBody } from './dto/update-message.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { WsException } from '@nestjs/websockets/errors';
 
@@ -93,7 +93,7 @@ export class ChatService {
       select: {
         id: true,
         message: true,
-        createdAt: true,
+        updatedAt: true,
         userID: true,
         roomID: true,
       },
